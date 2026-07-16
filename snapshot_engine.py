@@ -60,14 +60,15 @@ async def capture_snapshot(asset_id: str, url: str):
             "url": url,
             "screenshot_path": screenshot_path,
             "dom_hash": dom_hash,
-            # we can choose to store dom_text in a text file or in the DB directly.
-            # Storing it in a file might be safer if it's large.
-            "dom_text_snippet": normalized_text[:500] + "..." if len(normalized_text) > 500 else normalized_text,
+            "dom_text": normalized_text,
             "captured_at": timestamp
         }
         
         print(f"[+] Snapshot complete for {asset_id}!")
-        print(json.dumps(result, indent=2))
+        # Print a clean, truncated preview for logging
+        print_preview = result.copy()
+        print_preview["dom_text"] = normalized_text[:200] + "..." if len(normalized_text) > 200 else normalized_text
+        print(json.dumps(print_preview, indent=2))
         
         return result
 

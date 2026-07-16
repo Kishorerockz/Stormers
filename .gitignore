@@ -1,7 +1,26 @@
+# Environments
+venv/
+env/
+ENV/
+.env
+
+# Execution
 __pycache__/
 *.pyc
-.env
+
+# Local Data Storage
+snapshots/
 data/
 *.db
-ms-playwright/
 *.sqlite3
+
+# Playwright
+ms-playwright/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Hackathon Docs
+*.pdf
+*Implementation_Plan*.md
