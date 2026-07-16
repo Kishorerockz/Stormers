@@ -250,13 +250,16 @@ async function checkNewAlertsCount() {
         
         // Posture status badge update
         const postureBadge = document.getElementById("overall-status-badge");
+        const radarDot = document.getElementById("radar-dot");
         const criticalAlerts = alerts.filter(a => a.severity === "high" || a.severity === "medium");
         if (criticalAlerts.length > 0) {
             postureBadge.className = "posture-badge flagged";
             postureBadge.innerText = `COMPROMISED (${criticalAlerts.length} RISKS)`;
+            if (radarDot) radarDot.className = "radar-dot flagged";
         } else {
             postureBadge.className = "posture-badge clean";
             postureBadge.innerText = "SECURE";
+            if (radarDot) radarDot.className = "radar-dot clean";
         }
         
         if (knownAlertsCount !== -1 && alerts.length > knownAlertsCount) {
