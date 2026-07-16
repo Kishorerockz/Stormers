@@ -1,7 +1,12 @@
 import os
 import json
-from google import genai
-from google.genai import types
+
+try:
+    from google import genai
+    from google.genai import types
+    HAS_GEMINI_SDK = True
+except ImportError:
+    HAS_GEMINI_SDK = False
 
 def analyze_changes_with_ai(url: str, visual_score: float, text_diff: str) -> dict:
     """
@@ -9,8 +14,8 @@ def analyze_changes_with_ai(url: str, visual_score: float, text_diff: str) -> di
     Falls back to local heuristic scoring if the API key is not present or if the call fails.
     """
     api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        print("GEMINI_API_KEY env variable not set. Falling back to heuristic scoring.")
+    if not HAS_GEMINI_SDK or not api_key:
+        print("GEMINI_API_KEY env variable not set or google-genai not installed. Falling back to heuristic scoring.")
         return heuristic_scoring(url, visual_score, text_diff)
         
     try:

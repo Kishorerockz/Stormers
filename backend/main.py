@@ -15,8 +15,12 @@ from backend.auth import (
 from backend.scheduler import run_snapshot_for_asset, scheduler_loop
 
 # Ensure directories exist at module import time
-os.makedirs("/home/ranjan/.gemini/antigravity/scratch/defacement-detection-platform/data/screenshots", exist_ok=True)
-os.makedirs("/home/ranjan/.gemini/antigravity/scratch/defacement-detection-platform/static", exist_ok=True)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCREENSHOTS_DIR = os.path.join(BASE_DIR, "data", "screenshots")
+FRONTEND_DIR = os.path.join(BASE_DIR, "static")
+
+os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
+os.makedirs(FRONTEND_DIR, exist_ok=True)
 
 app = FastAPI(title="Defacement Detection Platform API")
 
@@ -47,7 +51,7 @@ async def startup_event():
     # Ensure database is set up
     init_db()
     # Ensure screenshot directory exists
-    os.makedirs("/home/ranjan/.gemini/antigravity/scratch/defacement-detection-platform/data/screenshots", exist_ok=True)
+    os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
     # Start background scheduler loop
     scheduler_task = asyncio.create_task(scheduler_loop())
 
@@ -108,7 +112,7 @@ def login(user: UserAuth):
 
 # --- Asset Routes ---
 
-@app.post("/assets")
+@app.post("/assets", status_code=201)
 def create_asset(asset: AssetCreate, background_tasks: BackgroundTasks, current_user: dict = Depends(check_admin_role)):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -337,11 +341,9 @@ def get_alert_diff(alert_id: int, current_user: dict = Depends(get_current_user)
 # Mount screenshot uploads directory
 app.mount(
     "/screenshots", 
-    StaticFiles(directory="/home/ranjan/.gemini/antigravity/scratch/defacement-detection-platform/data/screenshots"), 
+    StaticFiles(directory=SCREENSHOTS_DIR), 
     name="screenshots"
 )
 
 # Mount SPA frontend
-frontend_dir = "/home/ranjan/.gemini/antigravity/scratch/defacement-detection-platform/static"
-os.makedirs(frontend_dir, exist_ok=True)
-app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="static")
+app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="static")

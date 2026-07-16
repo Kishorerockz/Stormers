@@ -1,10 +1,11 @@
 import os
 import hashlib
 import time
-from playwright.sync_api import sync_playwright
+from playwright.async_api import async_playwright
 from PIL import Image, ImageDraw, ImageFont
 
-SCREENSHOTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "screenshots")
+SCREENSHOTS_DIR = os.environ.get("SCREENSHOTS_DIR", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "screenshots"))
+
 def generate_mock_screenshot(url: str, text_content: str, output_path: str):
     """
     Generates a high-quality mock screenshot of a website using Pillow.
@@ -60,7 +61,7 @@ def generate_mock_screenshot(url: str, text_content: str, output_path: str):
         
     img.save(output_path)
 
-def capture_snapshot(url: str) -> dict:
+async def capture_snapshot(url: str) -> dict:
     """
     Captures a screenshot of the URL, extracts visible text, and calculates hash.
     Falls back to mock snapshotting if Playwright fails.
@@ -72,22 +73,22 @@ def capture_snapshot(url: str) -> dict:
     
     # Try using Playwright first
     try:
-        with sync_playwright() as p:
+        async with async_playwright() as p:
             # We add a 10s timeout to browser launch
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
+            browser = await p.chromium.launch(headless=True)
+            page = await browser.new_page()
             # Set a standard viewport size
-            page.set_viewport_size({"width": 1200, "height": 800})
+            await page.set_viewport_size({"width": 1200, "height": 800})
             
             # Navigate to URL with 15s timeout
-            page.goto(url, timeout=15000, wait_until="networkidle")
+            await page.goto(url, timeout=15000, wait_until="networkidle")
             
             # Serialize text of body
-            dom_text = page.locator("body").inner_text()
+            dom_text = await page.locator("body").inner_text()
             # Save screenshot
-            page.screenshot(path=screenshot_path, full_page=False)
+            await page.screenshot(path=screenshot_path, full_page=False)
             
-            browser.close()
+            await browser.close()
             
             dom_hash = hashlib.sha256(dom_text.encode('utf-8')).hexdigest()
             return {
@@ -99,7 +100,8 @@ def capture_snapshot(url: str) -> dict:
             }
     except Exception as e:
         # Fallback to simulated HTML fetch and mock screenshot generator
-        print(f"Playwright failed (falling back to mock engine): {e}")
+        clean_err = str(e).encode('ascii', 'replace').decode('ascii')
+        print(f"Playwright failed (falling back to mock engine): {clean_err}")
         
         # Determine some mock text for popular testing websites
         if "example.com" in url:
