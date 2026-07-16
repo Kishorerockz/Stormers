@@ -5,6 +5,7 @@ from playwright.async_api import async_playwright
 from PIL import Image, ImageDraw, ImageFont
 
 SCREENSHOTS_DIR = os.environ.get("SCREENSHOTS_DIR", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "screenshots"))
+
 def generate_mock_screenshot(url: str, text_content: str, output_path: str):
     """
     Generates a high-quality mock screenshot of a website using Pillow.
@@ -99,8 +100,7 @@ async def capture_snapshot(url: str) -> dict:
             }
     except Exception as e:
         # Fallback to simulated HTML fetch and mock screenshot generator
-        clean_err = str(e).encode('ascii', 'replace').decode('ascii')
-        print(f"Playwright failed (falling back to mock engine): {clean_err}")
+        print(f"Playwright failed (falling back to mock engine): {e}")
         
         # Determine some mock text for popular testing websites
         if "example.com" in url:
@@ -111,14 +111,11 @@ async def capture_snapshot(url: str) -> dict:
             # Try a simple requests get to fetch plain text if possible
             try:
                 import requests
-                from bs4 import BeautifulSoup
+                import re
                 headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
                 r = requests.get(url, timeout=5, headers=headers)
-                soup = BeautifulSoup(r.text, 'html.parser')
-                # Extract text
-                for script in soup(["script", "style"]):
-                    script.extract()
-                dom_text = soup.get_text(separator="\n")
+                # Simple strip HTML tags using regex
+                dom_text = re.sub('<[^<]+>', ' ', r.text).strip()
             except Exception:
                 # Absolute static mock content
                 dom_text = f"Default Monitored Portal Site\nWelcome to our corporate main homepage.\nStatus: Active\nAll systems running nominal."

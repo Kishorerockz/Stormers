@@ -2,10 +2,11 @@ import jwt
 from datetime import datetime, timedelta, timezone
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import os
 import hashlib
 from backend.database import get_db_connection
 
-SECRET_KEY = "cyber_security_defacement_detection_platform_secret_key"
+SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "cyber_security_defacement_detection_platform_secret_key")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440 # 24 hours
 
