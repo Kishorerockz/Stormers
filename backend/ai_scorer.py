@@ -13,10 +13,15 @@ def analyze_changes_with_ai(url: str, visual_score: float, text_diff: str) -> di
     Evaluates changes on the website using Gemini Flash.
     Falls back to local heuristic scoring if the API key is not present or if the call fails.
     """
-    api_key = os.environ.get("GEMINI_API_KEY")
+    from backend.database import get_setting
+    api_key = get_setting("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
+    
     if not HAS_GEMINI_SDK or not api_key:
-        print("GEMINI_API_KEY env variable not set or google-genai not installed. Falling back to heuristic scoring.")
-        return heuristic_scoring(url, visual_score, text_diff)
+        return {
+            "severity": "high",
+            "explanation": "SYSTEM ERROR: AI Analysis bypassed. GEMINI_API_KEY is not configured in settings. You MUST configure a valid BYOK key in the dashboard to receive scoring.",
+            "recommended_action": "Configure a valid Google Gemini API Key via the Admin Dashboard."
+        }
         
     try:
         client = genai.Client(api_key=api_key)
@@ -58,41 +63,8 @@ Ensure the response is a single valid JSON string without markdown code block de
         raise ValueError("Invalid response schema from Gemini API")
         
     except Exception as e:
-        print(f"Gemini API call failed: {e}. Falling back to heuristic scoring.")
-        return heuristic_scoring(url, visual_score, text_diff)
-
-def heuristic_scoring(url: str, visual_score: float, text_diff: str) -> dict:
-    """
-    Local rule-based risk evaluation fallback.
-    """
-    severity = "low"
-    explanation = "No major visual or text changes detected."
-    recommended_action = "Monitor future checks."
-    
-    text_lower = text_diff.lower()
-    # Cyber security/defacement trigger terms
-    suspicious_terms = ["hacked", "pwned", "defaced", "hacker", "bitcoin", "crypto", "casino", "viagra", "compromised", "leak", "ownz", "system siege"]
-    found_terms = [term for term in suspicious_terms if term in text_lower]
-    
-    if found_terms:
-        severity = "high"
-        explanation = f"Critical alert: Suspicious keywords associated with hacking or unauthorized site content detected: {', '.join(found_terms)}."
-        recommended_action = "Rotate CMS credentials, restore clean source files, check active web server sessions, and audit access logs."
-    elif visual_score > 35.0:
-        severity = "high"
-        explanation = f"High alert: Significant visual change ({visual_score}%) detected, suggesting a complete homepage layout redesign or defacement page insertion."
-        recommended_action = "Check recent deployments, audit file integrity on the web server, and check public DNS records."
-    elif visual_score > 8.0:
-        severity = "medium"
-        explanation = f"Medium alert: Moderate visual change ({visual_score}%) or structural changes detected. This may indicate a layout modification or content update."
-        recommended_action = "Confirm if this visual redesign or update was planned by the dev team."
-    elif len(text_diff.strip()) > 100:
-        severity = "medium"
-        explanation = "Medium alert: Noticeable textual content modifications detected without significant visual layout restructuring."
-        recommended_action = "Verify if these textual updates are authorized (e.g. blog post, product updates)."
-    
-    return {
-        "severity": severity,
-        "explanation": explanation,
-        "recommended_action": recommended_action
-    }
+        return {
+            "severity": "high",
+            "explanation": f"AI Scoring Failed during sequence execution: {str(e)}",
+            "recommended_action": "Check the exact spelling of your Gemini API BYOK token, or review application quota limits in your Google profile."
+        }

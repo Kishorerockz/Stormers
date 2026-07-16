@@ -3,6 +3,7 @@ import os
 import hashlib
 
 DB_PATH = os.environ.get("DATABASE_PATH", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "platform.db"))
+
 def get_db_connection():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
@@ -73,6 +74,13 @@ def init_db():
     """)
 
     cursor.execute("""
+    CREATE TABLE IF NOT EXISTS app_settings (
+        setting_key TEXT PRIMARY KEY,
+        setting_value TEXT NOT NULL
+    );
+    """)
+
+    cursor.execute("""
     CREATE TABLE IF NOT EXISTS audit_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
@@ -98,6 +106,26 @@ def init_db():
         conn.commit()
         print("Database seeded with default users.")
 
+    conn.close()
+
+def get_setting(key: str, default: str = None) -> str:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT setting_value FROM app_settings WHERE setting_key = ?", (key,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return row["setting_value"]
+    return default
+
+def set_setting(key: str, value: str):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO app_settings (setting_key, setting_value) VALUES (?, ?) ON CONFLICT(setting_key) DO UPDATE SET setting_value = excluded.setting_value",
+        (key, value)
+    )
+    conn.commit()
     conn.close()
 
 def log_audit(user_id: int, action: str, target_type: str = None, target_id: int = None):

@@ -110,9 +110,24 @@ def login(user: UserAuth):
     log_audit(db_user["id"], f"User logged in successfully: {db_user['email']}", "user", db_user["id"])
     return {"token": token, "role": db_user["role"], "email": db_user["email"]}
 
+from backend.database import get_setting, set_setting
+
+class SettingKV(BaseModel):
+    value: str
+
+@app.get("/settings/{key}")
+def read_setting(key: str, current_user: dict = Depends(check_admin_role)):
+    return {"key": key, "value": get_setting(key, "")}
+
+@app.post("/settings/{key}")
+def write_setting(key: str, s: SettingKV, current_user: dict = Depends(check_admin_role)):
+    set_setting(key, s.value)
+    log_audit(current_user["id"], f"Admin updated system setting {key}", "setting", 0)
+    return {"key": key, "value": s.value}
+
 # --- Asset Routes ---
 
-@app.post("/assets", status_code=201)
+@app.post("/assets")
 def create_asset(asset: AssetCreate, background_tasks: BackgroundTasks, current_user: dict = Depends(check_admin_role)):
     conn = get_db_connection()
     cursor = conn.cursor()
