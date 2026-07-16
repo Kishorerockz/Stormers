@@ -32,7 +32,7 @@ def generate_mock_screenshot(url: str, text_content: str, output_path: str):
     draw.rectangle([(80, 120), (1120, 750)], fill=(255, 255, 255), outline=(220, 220, 220))
     
     # Title / Header
-    draw.rectangle([(120, 160), (500, 200)], fill=(52, 152, 219)) # Blue brand header bar
+    draw.rectangle([(120, 160), (500, 200)], fill=(52, 152, 219))
     draw.text((140, 172), "SECURITY SHIELD SYSTEM", fill=(255, 255, 255))
     
     # Side panel
@@ -51,9 +51,9 @@ def generate_mock_screenshot(url: str, text_content: str, output_path: str):
     for line in lines:
         if len(line) > 80:
             line = line[:80] + "..."
-        # Highlight defaced text differently to visually look like defacement in diff
+        # Highlight defaced text differently
         if any(hack_word in line.lower() for hack_word in ["hacked", "defaced", "pwned", "hacker"]):
-            draw.rectangle([(385, y_offset - 2), (1050, y_offset + 18)], fill=(254, 202, 87)) # Yellow warning bg
+            draw.rectangle([(385, y_offset - 2), (1050, y_offset + 18)], fill=(254, 202, 87))
             draw.text((390, y_offset), f"ALERT: {line}", fill=(211, 47, 47))
         else:
             draw.text((390, y_offset), line, fill=(60, 60, 60))
@@ -74,20 +74,12 @@ async def capture_snapshot(url: str) -> dict:
     # Try using Playwright first
     try:
         async with async_playwright() as p:
-            # We add a 10s timeout to browser launch
             browser = await p.chromium.launch(headless=True)
             page = await browser.new_page()
-            # Set a standard viewport size
             await page.set_viewport_size({"width": 1200, "height": 800})
-            
-            # Navigate to URL with 15s timeout
             await page.goto(url, timeout=15000, wait_until="networkidle")
-            
-            # Serialize text of body
             dom_text = await page.locator("body").inner_text()
-            # Save screenshot
             await page.screenshot(path=screenshot_path, full_page=False)
-            
             await browser.close()
             
             dom_hash = hashlib.sha256(dom_text.encode('utf-8')).hexdigest()
@@ -99,32 +91,26 @@ async def capture_snapshot(url: str) -> dict:
                 "engine": "playwright"
             }
     except Exception as e:
-        # Fallback to simulated HTML fetch and mock screenshot generator
         clean_err = str(e).encode('ascii', 'replace').decode('ascii')
         print(f"Playwright failed (falling back to mock engine): {clean_err}")
         
-        # Determine some mock text for popular testing websites
         if "example.com" in url:
-            dom_text = "Example Domain\nThis domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission."
+            dom_text = "Example Domain\nThis domain is for use in illustrative examples in documents."
         elif "google.com" in url:
             dom_text = "Google Search\nSearch the world's information, including webpages, images, videos and more."
         else:
-            # Try a simple requests get to fetch plain text if possible
             try:
                 import requests
                 from bs4 import BeautifulSoup
                 headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
                 r = requests.get(url, timeout=5, headers=headers)
                 soup = BeautifulSoup(r.text, 'html.parser')
-                # Extract text
                 for script in soup(["script", "style"]):
                     script.extract()
                 dom_text = soup.get_text(separator="\n")
             except Exception:
-                # Absolute static mock content
                 dom_text = f"Default Monitored Portal Site\nWelcome to our corporate main homepage.\nStatus: Active\nAll systems running nominal."
         
-        # Generate mock screenshot
         generate_mock_screenshot(url, dom_text, screenshot_path)
         
         dom_hash = hashlib.sha256(dom_text.encode('utf-8')).hexdigest()
