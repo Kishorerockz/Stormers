@@ -17,6 +17,7 @@ import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import AlertFeed from './components/AlertFeed';
 import AuditLogs from './components/AuditLogs';
+import SettingsPage from './components/Settings';
 import api, { getApiMode, setApiMode, getLiveUrl, setLiveUrl } from './services/api';
 
 export default function App() {
@@ -177,6 +178,18 @@ export default function App() {
               </div>
             </li>
           )}
+
+          {user.role === 'admin' && (
+            <li className="nav-item">
+              <div
+                className={`nav-link ${activeTab === 'settings' ? 'active' : ''}`}
+                onClick={() => setActiveTab('settings')}
+              >
+                <Settings size={18} />
+                <span>Settings</span>
+              </div>
+            </li>
+          )}
         </ul>
 
         {/* Developer Sandbox Controls */}
@@ -295,11 +308,13 @@ export default function App() {
               {activeTab === 'dashboard' && 'Web Assets Monitor'}
               {activeTab === 'alerts' && 'Defacement Alerts Feed'}
               {activeTab === 'audit' && 'Security Audit Ledger'}
+              {activeTab === 'settings' && 'System Settings'}
             </h1>
             <p className="section-desc">
               {activeTab === 'dashboard' && 'Autonomous pixel-level visual checking & content surveillance'}
               {activeTab === 'alerts' && 'Prioritized threat events evaluated by AI agents'}
               {activeTab === 'audit' && 'Cryptographically recorded immutable action logging'}
+              {activeTab === 'settings' && 'Manage API credentials and backend integrations'}
             </p>
           </div>
 
@@ -325,6 +340,7 @@ export default function App() {
         {activeTab === 'dashboard' && <Dashboard user={user} />}
         {activeTab === 'alerts' && <AlertFeed user={user} />}
         {activeTab === 'audit' && user.role === 'admin' && <AuditLogs />}
+        {activeTab === 'settings' && user.role === 'admin' && <SettingsPage />}
       </main>
     </div>
   );
