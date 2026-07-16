@@ -14,7 +14,7 @@ snapshots/
 *.db
 *.sqlite3
 
-# Playwright binaries
+# Playwright
 ms-playwright/
 
 # OS Files
