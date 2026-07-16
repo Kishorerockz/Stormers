@@ -16,7 +16,7 @@ from backend.scheduler import run_snapshot_for_asset, scheduler_loop
 
 # Ensure directories exist at module import time
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCREENSHOTS_DIR = os.path.join(BASE_DIR, "data", "screenshots")
+SCREENSHOTS_DIR = os.environ.get("SCREENSHOTS_DIR", os.path.join(BASE_DIR, "data", "screenshots"))
 FRONTEND_DIR = os.path.join(BASE_DIR, "static")
 
 os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
