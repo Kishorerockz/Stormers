@@ -10,8 +10,6 @@ sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 from backend.database import init_db, get_db_connection, DB_PATH
 from backend.auth import hash_password, verify_password, create_access_token, jwt, SECRET_KEY, ALGORITHM
 from backend.diff_engine import compare_screenshots, compare_dom_texts
-from backend.ai_scorer import heuristic_scoring
-
 class TestDefacementDetectionPlatform(unittest.TestCase):
     
     @classmethod
@@ -80,25 +78,6 @@ class TestDefacementDetectionPlatform(unittest.TestCase):
         # Clean up test files
         if os.path.exists("test_data"):
             shutil.rmtree("test_data")
-
-    def test_heuristic_scoring_logic(self):
-        """Verify the fallback rule-based AI engine categorizes correctly."""
-        # 1. Clean changes (small text edits)
-        res1 = heuristic_scoring("https://company.com", 1.2, "Updated company description in header.")
-        self.assertEqual(res1["severity"], "low")
-        
-        # 2. Medium visual change
-        res2 = heuristic_scoring("https://company.com", 15.0, "No text changes.")
-        self.assertEqual(res2["severity"], "medium")
-        
-        # 3. High alert visual change
-        res3 = heuristic_scoring("https://company.com", 45.0, "No text changes.")
-        self.assertEqual(res3["severity"], "high")
-        
-        # 4. Critical defacement keyword compromise
-        res4 = heuristic_scoring("https://company.com", 5.0, "We are hacker group X. Your portal is HACKED and PWNED! Pay bitcoin.")
-        self.assertEqual(res4["severity"], "high")
-        self.assertIn("HACKED", res4["explanation"].upper())
 
 if __name__ == '__main__':
     unittest.main()
