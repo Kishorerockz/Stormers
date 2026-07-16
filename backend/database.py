@@ -2,7 +2,7 @@ import sqlite3
 import os
 import hashlib
 
-DB_PATH = "/home/ranjan/.gemini/antigravity/scratch/defacement-detection-platform/data/platform.db"
+DB_PATH = os.environ.get("DATABASE_PATH", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "platform.db"))
 
 def get_db_connection():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
