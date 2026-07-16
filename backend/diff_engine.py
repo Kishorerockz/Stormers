@@ -65,3 +65,30 @@ def compare_dom_texts(text1: str, text2: str) -> str:
         lineterm=""
     )
     return "\n".join(list(diff))
+
+import re
+
+def compare_html_structure(html1: str, html2: str) -> str:
+    """
+    Compares the tag structure of two HTML documents to identify structural anomalies
+    like injected script tags, altered forms, or hidden iframes.
+    """
+    if not html1 or not html2:
+        return "No structural HTML data available for comparison."
+        
+    def extract_tags(html: str):
+        # Extract tag names using a regex
+        tags = re.findall(r'<([a-zA-Z1-6]+)(?:\s+[^>]*)?>', html)
+        return [t.lower() for t in tags]
+        
+    tags1 = extract_tags(html1)
+    tags2 = extract_tags(html2)
+    
+    diff = difflib.unified_diff(
+        tags1,
+        tags2,
+        fromfile="Baseline HTML tags structure",
+        tofile="Current HTML tags structure",
+        lineterm=""
+    )
+    return "\n".join(list(diff))

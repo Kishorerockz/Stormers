@@ -1,7 +1,7 @@
 import asyncio
 from backend.database import get_db_connection, log_audit
 from backend.snapshot import capture_snapshot
-from backend.diff_engine import compare_screenshots, compare_dom_texts
+from backend.diff_engine import compare_screenshots, compare_dom_texts, compare_html_structure
 from backend.ai_scorer import analyze_changes_with_ai
 
 async def run_snapshot_for_asset(asset_id: int, trigger_user_id: int = None) -> dict:
@@ -31,15 +31,15 @@ async def run_snapshot_for_asset(asset_id: int, trigger_user_id: int = None) -> 
         
         # 2. Store snapshot in DB
         cursor.execute(
-            "INSERT INTO snapshots (asset_id, screenshot_path, dom_hash, dom_text) VALUES (?, ?, ?, ?)",
-            (asset_id, snap_res["screenshot_path"], snap_res["dom_hash"], snap_res["dom_text"])
+            "INSERT INTO snapshots (asset_id, screenshot_path, dom_hash, dom_text, dom_html) VALUES (?, ?, ?, ?, ?)",
+            (asset_id, snap_res["screenshot_path"], snap_res["dom_hash"], snap_res["dom_text"], snap_res["dom_html"])
         )
         new_snap_id = cursor.lastrowid
         conn.commit()
         
         # 3. Retrieve previous snapshot
         cursor.execute(
-            "SELECT id, screenshot_path, dom_hash, dom_text FROM snapshots WHERE asset_id = ? AND id < ? ORDER BY id DESC LIMIT 1",
+            "SELECT id, screenshot_path, dom_hash, dom_text, dom_html FROM snapshots WHERE asset_id = ? AND id < ? ORDER BY id DESC LIMIT 1",
             (asset_id, new_snap_id)
         )
         prev_snap = cursor.fetchone()
@@ -59,15 +59,16 @@ async def run_snapshot_for_asset(asset_id: int, trigger_user_id: int = None) -> 
             # Create alert if visual change > 2% or text changes detected
             if visual_diff_score > 2.0 or dom_changed:
                 text_diff = compare_dom_texts(prev_snap["dom_text"], snap_res["dom_text"])
+                structural_diff = compare_html_structure(prev_snap["dom_html"], snap_res["dom_html"])
                 
                 # Analyze changes with Gemini/fallback heuristics
-                ai_res = analyze_changes_with_ai(url, visual_diff_score, text_diff)
+                ai_res = analyze_changes_with_ai(url, visual_diff_score, text_diff, structural_diff)
                 
                 # Insert alert row
                 cursor.execute(
-                    """INSERT INTO alerts (asset_id, snapshot_id_before, snapshot_id_after, diff_score, severity, ai_explanation, recommended_action, status)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, 'open')""",
-                    (asset_id, prev_snap["id"], new_snap_id, visual_diff_score, ai_res["severity"], ai_res["explanation"], ai_res["recommended_action"])
+                    """INSERT INTO alerts (asset_id, snapshot_id_before, snapshot_id_after, diff_score, severity, attack_category, ai_explanation, recommended_action, status)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open')""",
+                    (asset_id, prev_snap["id"], new_snap_id, visual_diff_score, ai_res["severity"], ai_res["attack_category"], ai_res["explanation"], ai_res["recommended_action"])
                 )
                 alert_id = cursor.lastrowid
                 

@@ -84,21 +84,29 @@ class TestDefacementDetectionPlatform(unittest.TestCase):
     def test_heuristic_scoring_logic(self):
         """Verify the fallback rule-based AI engine categorizes correctly."""
         # 1. Clean changes (small text edits)
-        res1 = heuristic_scoring("https://company.com", 1.2, "Updated company description in header.")
+        res1 = heuristic_scoring("https://company.com", 1.2, "Updated company description in header.", "")
         self.assertEqual(res1["severity"], "low")
+        self.assertEqual(res1["attack_category"], "benign change")
         
         # 2. Medium visual change
-        res2 = heuristic_scoring("https://company.com", 15.0, "No text changes.")
+        res2 = heuristic_scoring("https://company.com", 15.0, "No text changes.", "")
         self.assertEqual(res2["severity"], "medium")
         
         # 3. High alert visual change
-        res3 = heuristic_scoring("https://company.com", 45.0, "No text changes.")
+        res3 = heuristic_scoring("https://company.com", 45.0, "No text changes.", "")
         self.assertEqual(res3["severity"], "high")
+        self.assertEqual(res3["attack_category"], "defacement")
         
         # 4. Critical defacement keyword compromise
-        res4 = heuristic_scoring("https://company.com", 5.0, "We are hacker group X. Your portal is HACKED and PWNED! Pay bitcoin.")
+        res4 = heuristic_scoring("https://company.com", 5.0, "We are hacker group X. Your portal is HACKED and PWNED! Pay bitcoin.", "")
         self.assertEqual(res4["severity"], "high")
+        self.assertEqual(res4["attack_category"], "defacement")
         self.assertIn("HACKED", res4["explanation"].upper())
+
+        # 5. Malicious script injection (Structural Diff)
+        res5 = heuristic_scoring("https://company.com", 0.0, "No text changes.", "-body\n+script\n+body")
+        self.assertEqual(res5["severity"], "high")
+        self.assertEqual(res5["attack_category"], "injected malware")
 
 if __name__ == '__main__':
     unittest.main()

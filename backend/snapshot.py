@@ -85,6 +85,8 @@ async def capture_snapshot(url: str) -> dict:
             
             # Serialize text of body
             dom_text = await page.locator("body").inner_text()
+            # Serialize HTML content for structural verification
+            dom_html = await page.content()
             # Save screenshot
             await page.screenshot(path=screenshot_path, full_page=False)
             
@@ -94,6 +96,7 @@ async def capture_snapshot(url: str) -> dict:
             return {
                 "screenshot_path": screenshot_path,
                 "dom_text": dom_text,
+                "dom_html": dom_html,
                 "dom_hash": dom_hash,
                 "success": True,
                 "engine": "playwright"
@@ -103,18 +106,22 @@ async def capture_snapshot(url: str) -> dict:
         clean_err = str(e).encode('ascii', 'replace').decode('ascii')
         print(f"Playwright failed (falling back to mock engine): {clean_err}")
         
+        dom_html = ""
         # Determine some mock text for popular testing websites
         if "example.com" in url:
             dom_text = "Example Domain\nThis domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission."
+            dom_html = "<html><body><h1>Example Domain</h1><p>This domain is for use in illustrative examples in documents.</p></body></html>"
         elif "google.com" in url:
             dom_text = "Google Search\nSearch the world's information, including webpages, images, videos and more."
+            dom_html = "<html><body><h1>Google</h1><p>Search the world's information.</p></body></html>"
         else:
-            # Try a simple requests get to fetch plain text if possible
+            # Try a simple requests get to fetch plain text/html if possible
             try:
                 import requests
                 from bs4 import BeautifulSoup
                 headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
                 r = requests.get(url, timeout=5, headers=headers)
+                dom_html = r.text
                 soup = BeautifulSoup(r.text, 'html.parser')
                 # Extract text
                 for script in soup(["script", "style"]):
@@ -123,6 +130,7 @@ async def capture_snapshot(url: str) -> dict:
             except Exception:
                 # Absolute static mock content
                 dom_text = f"Default Monitored Portal Site\nWelcome to our corporate main homepage.\nStatus: Active\nAll systems running nominal."
+                dom_html = f"<html><body><h1>Default Monitored Portal Site</h1><p>Welcome to our corporate main homepage.</p></body></html>"
         
         # Generate mock screenshot
         generate_mock_screenshot(url, dom_text, screenshot_path)
@@ -131,6 +139,7 @@ async def capture_snapshot(url: str) -> dict:
         return {
             "screenshot_path": screenshot_path,
             "dom_text": dom_text,
+            "dom_html": dom_html,
             "dom_hash": dom_hash,
             "success": True,
             "engine": "mock"

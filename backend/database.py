@@ -50,6 +50,7 @@ def init_db():
         screenshot_path TEXT NOT NULL,
         dom_hash TEXT NOT NULL,
         dom_text TEXT NOT NULL,
+        dom_html TEXT,
         captured_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (asset_id) REFERENCES assets(id)
     );
@@ -63,6 +64,7 @@ def init_db():
         snapshot_id_after INTEGER,
         diff_score REAL NOT NULL,
         severity TEXT NOT NULL CHECK(severity IN ('low', 'medium', 'high')),
+        attack_category TEXT,
         ai_explanation TEXT,
         recommended_action TEXT,
         status TEXT DEFAULT 'open' CHECK(status IN ('open', 'reviewed', 'dismissed')),
@@ -86,6 +88,19 @@ def init_db():
     """)
 
     conn.commit()
+
+    # Dynamic migrations to add columns to existing database tables if they exist
+    try:
+        cursor.execute("ALTER TABLE snapshots ADD COLUMN dom_html TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass # Column already exists
+        
+    try:
+        cursor.execute("ALTER TABLE alerts ADD COLUMN attack_category TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass # Column already exists
 
     # Seed default users if they do not exist
     cursor.execute("SELECT COUNT(*) FROM users")

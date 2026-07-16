@@ -494,18 +494,32 @@ async function updateAlertsFeed() {
         
         // Fetch diff block info
         let textDiffBlockHtml = "";
-        // We will fetch snapshots details to compute diff text dynamically or load it
-        textDiffBlockHtml = `
-            <div class="dom-diff-section">
-                <div class="dom-diff-header">
-                    <span>${domDiffText}</span>
-                    <button class="cyber-small-btn" onclick="toggleTextDiff(${alert.id})">Show/Hide Diff Text</button>
+        let structuralDiffBlockHtml = "";
+        
+        if (alert.snapshot_id_before) {
+            textDiffBlockHtml = `
+                <div class="dom-diff-section" style="margin-top: 15px;">
+                    <div class="dom-diff-header">
+                        <span>${domDiffText} (Content Diff)</span>
+                        <button class="cyber-small-btn" onclick="toggleTextDiff(${alert.id})">Show/Hide Content Diff</button>
+                    </div>
+                    <div class="dom-diff-body" id="text-diff-body-${alert.id}" style="display: none;">
+                        <pre class="dom-diff-pre" id="text-diff-pre-${alert.id}">Loading unified DOM diff lines...</pre>
+                    </div>
                 </div>
-                <div class="dom-diff-body" id="text-diff-body-${alert.id}" style="display: none;">
-                    <pre class="dom-diff-pre" id="text-diff-pre-${alert.id}">Loading unified DOM diff lines...</pre>
+            `;
+            structuralDiffBlockHtml = `
+                <div class="dom-diff-section" style="margin-top: 15px;">
+                    <div class="dom-diff-header">
+                        <span>HTML Tags Sequence Diff (Structural Diff)</span>
+                        <button class="cyber-small-btn" onclick="toggleStructuralDiff(${alert.id})">Show/Hide Structural Diff</button>
+                    </div>
+                    <div class="dom-diff-body" id="struct-diff-body-${alert.id}" style="display: none;">
+                        <pre class="dom-diff-pre" id="struct-diff-pre-${alert.id}">Loading HTML structural diff...</pre>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
         
         card.innerHTML = `
             <div class="alert-card-header">
@@ -515,6 +529,7 @@ async function updateAlertsFeed() {
                 </div>
                 <div class="alert-meta">
                     <span class="alert-severity ${alert.severity}">${alert.severity.toUpperCase()} RISK</span>
+                    <span class="role-badge" style="background: rgba(255, 0, 127, 0.1); border: 1px solid var(--color-pink); color: var(--color-pink); text-transform: uppercase;">Category: ${escapeHtml(alert.attack_category || "benign change")}</span>
                     <span class="alert-timestamp">Flagged: ${formatTime(alert.created_at)}</span>
                 </div>
             </div>
@@ -544,6 +559,7 @@ async function updateAlertsFeed() {
                 </div>
                 
                 ${textDiffBlockHtml}
+                ${structuralDiffBlockHtml}
                 
                 <div class="alert-actions-panel">
                     ${actionButtonsHtml}
@@ -553,9 +569,10 @@ async function updateAlertsFeed() {
         
         container.appendChild(card);
         
-        // Lazy load unified text diff for this card
+        // Lazy load unified text and structural diff for this card
         if (alert.snapshot_id_before) {
             loadTextDiff(alert.id, alert.snapshot_id_before, alert.snapshot_id_after);
+            loadStructuralDiff(alert.id, alert.snapshot_id_before, alert.snapshot_id_after);
         }
     });
 }
@@ -931,4 +948,28 @@ function showToast(title, body, type = "info") {
         toast.style.opacity = "0";
         setTimeout(() => toast.remove(), 300);
     }, 5000);
+}
+
+async function loadStructuralDiff(alertId, beforeId, afterId) {
+    try {
+        const pre = document.getElementById(`struct-diff-pre-${alertId}`);
+        if (!pre) return;
+        
+        const resDiff = await apiFetch(`/alerts/${alertId}/structural-diff`);
+        const diffData = await resDiff.json();
+        
+        renderDiffText(pre, diffData.diff);
+    } catch (e) {
+        const pre = document.getElementById(`struct-diff-pre-${alertId}`);
+        if (pre) pre.innerText = "Error loading HTML structural diff content.";
+    }
+}
+
+function toggleStructuralDiff(alertId) {
+    const el = document.getElementById(`struct-diff-body-${alertId}`);
+    if (el.style.display === "none") {
+        el.style.display = "block";
+    } else {
+        el.style.display = "none";
+    }
 }

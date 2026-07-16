@@ -336,6 +336,34 @@ def get_alert_diff(alert_id: int, current_user: dict = Depends(get_current_user)
     diff_text = compare_dom_texts(before["dom_text"], after["dom_text"])
     return {"diff": diff_text}
 
+@app.get("/alerts/{alert_id}/structural-diff")
+def get_alert_structural_diff(alert_id: int, current_user: dict = Depends(get_current_user)):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT snapshot_id_before, snapshot_id_after FROM alerts WHERE id = ?", (alert_id,))
+    alert = cursor.fetchone()
+    if not alert:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Alert not found")
+        
+    if not alert["snapshot_id_before"]:
+        conn.close()
+        return {"diff": ""}
+        
+    cursor.execute("SELECT dom_html FROM snapshots WHERE id = ?", (alert["snapshot_id_before"],))
+    before = cursor.fetchone()
+    cursor.execute("SELECT dom_html FROM snapshots WHERE id = ?", (alert["snapshot_id_after"],))
+    after = cursor.fetchone()
+    conn.close()
+    
+    if not before or not after:
+        raise HTTPException(status_code=404, detail="Snapshot data missing")
+        
+    from backend.diff_engine import compare_html_structure
+    diff_text = compare_html_structure(before["dom_html"], after["dom_html"])
+    return {"diff": diff_text}
+
 # --- Serving Frontend & Screenshots Static Files ---
 
 # Mount screenshot uploads directory
