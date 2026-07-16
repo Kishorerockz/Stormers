@@ -4,8 +4,7 @@ import time
 from playwright.sync_api import sync_playwright
 from PIL import Image, ImageDraw, ImageFont
 
-SCREENSHOTS_DIR = "/home/ranjan/.gemini/antigravity/scratch/defacement-detection-platform/data/screenshots"
-
+SCREENSHOTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "screenshots")
 def generate_mock_screenshot(url: str, text_content: str, output_path: str):
     """
     Generates a high-quality mock screenshot of a website using Pillow.
