@@ -10,6 +10,7 @@ __pycache__/
 
 # Local Data Storage
 snapshots/
+*.db
 
 # OS Files
 .DS_Store
