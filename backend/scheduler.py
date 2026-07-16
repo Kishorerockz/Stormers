@@ -27,7 +27,7 @@ async def run_snapshot_for_asset(asset_id: int, trigger_user_id: int = None) -> 
     
     try:
         # 1. Capture snapshot
-        snap_res = capture_snapshot(url)
+        snap_res = await capture_snapshot(url)
         
         # 2. Store snapshot in DB
         cursor.execute(

@@ -9,8 +9,8 @@ __pycache__/
 *.pyc
 
 # Local Data Storage
-snapshots/
 data/
+snapshots/
 *.db
 *.sqlite3
 
