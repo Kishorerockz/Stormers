@@ -1,0 +1,16 @@
+# Environments
+venv/
+env/
+ENV/
+.env
+
+# Execution
+__pycache__/
+*.pyc
+
+# Local Data Storage
+snapshots/
+
+# OS Files
+.DS_Store
+Thumbs.db
