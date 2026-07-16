@@ -414,6 +414,47 @@ button {
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+}
+.radar-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+    position: relative;
+}
+.radar-dot::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid transparent;
+    border-radius: 50%;
+    animation: radar-pulse 1.8s infinite linear;
+    opacity: 0;
+}
+.radar-dot.clean {
+    background-color: var(--color-green);
+    box-shadow: 0 0 10px var(--color-green);
+}
+.radar-dot.clean::after {
+    border-color: var(--color-green);
+}
+.radar-dot.flagged {
+    background-color: var(--color-red);
+    box-shadow: 0 0 10px var(--color-red);
+}
+.radar-dot.flagged::after {
+    border-color: var(--color-red);
+}
+@keyframes radar-pulse {
+    0% { transform: scale(0.5); opacity: 0; }
+    50% { opacity: 0.5; }
+    100% { transform: scale(1.5); opacity: 0; }
 }
 .posture-badge {
     border-radius: 4px;
@@ -461,6 +502,11 @@ button {
     box-shadow: var(--shadow-panel);
     margin-bottom: 30px;
     overflow: hidden;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.panel-box:hover {
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
 }
 .panel-header {
     align-items: center;
@@ -494,6 +540,12 @@ button {
     justify-content: space-between;
     align-items: center;
     padding: 25px 20px;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.metric-card:hover {
+    border-color: rgba(0, 240, 255, 0.2);
+    box-shadow: 0 4px 20px rgba(0, 240, 255, 0.05);
+    transform: translateY(-2px);
 }
 .metric-info {
     display: flex;

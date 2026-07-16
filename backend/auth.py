@@ -20,8 +20,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     except Exception:
         return False
 
+import secrets
+
 def hash_password(password: str) -> str:
-    salt = "platform_default_salt"
+    salt = secrets.token_hex(16)
     pwd_bytes = password.encode('utf-8')
     db_hash = hashlib.pbkdf2_hmac('sha256', pwd_bytes, salt.encode('utf-8'), 100000).hex()
     return f"{salt}${db_hash}"
