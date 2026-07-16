@@ -56,6 +56,31 @@ export default function App() {
     return () => clearInterval(interval);
   }, [user, activeTab]);
 
+  // Scroll-reveal animation — fires whenever activeTab changes so new cards animate in
+  useEffect(() => {
+    if (!user) return;
+    const timer = setTimeout(() => {
+      const elements = document.querySelectorAll('.glass-card, .stat-card, .alert-item, .audit-table');
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.07 }
+      );
+      elements.forEach((el) => {
+        el.classList.add('scroll-reveal');
+        observer.observe(el);
+      });
+      return () => observer.disconnect();
+    }, 80); // slight delay to let React render first
+    return () => clearTimeout(timer);
+  }, [user, activeTab]);
+
   const handleLoginSuccess = (loginData) => {
     localStorage.setItem('aegis_token', loginData.token);
     localStorage.setItem('aegis_user_role', loginData.role);
@@ -111,6 +136,10 @@ export default function App() {
 
   return (
     <div className="app-container">
+      {/* Animated aurora + stars background layers */}
+      <div className="aurora-bg" aria-hidden="true" />
+      <div className="stars-bg" aria-hidden="true" />
+
       {/* Sidebar Navigation */}
       <aside className="sidebar">
         <div className="brand-section">
