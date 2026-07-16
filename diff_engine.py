@@ -67,26 +67,110 @@ def compute_text_diff(text1: str, text2: str) -> dict:
     return summary
 
 
+import requests
+import json
+
 def evaluate_risk(visual_diff_score: float, text_summary: dict, api_key: str = None) -> dict:
     """
-    Ranjan's Deliverable: AI Risk Scoring (Mocked currently)
-    If diff crosses threshold, pass to AI to assess.
+    Evaluates the risk of changes on a page using AI (Gemini or Groq).
     """
-    # Threshold check
     THRESHOLD = 5.0
-    if visual_diff_score < THRESHOLD and text_summary["total_changes"] < 10:
-        return {"severity": "low", "explanation": "Minimal changes detected, likely dynamic content.", "recommended_action": "None"}
+    if visual_diff_score < THRESHOLD and text_summary.get("total_changes", 0) < 10:
+        return {
+            "severity": "low",
+            "explanation": "Minimal changes detected, likely dynamic content.",
+            "recommended_action": "None"
+        }
         
     print("[*] Threshold crossed. Asking AI for risk analysis...")
     
-    # MOCK AI RESPONSE - You would use Groq (Llama-3) or Gemini here
-    ai_response = {
-        "severity": "high",
-        "explanation": "Significant structural changes and text additions detected. The words 'hacked by' appear in the additions.",
-        "recommended_action": "Isolate the server. Rotate CMS admin credentials immediately and check recent login IPs."
-    }
+    prompt = f"""You are an AI security analyst for a Website Defacement Detection platform.
+Analyze the following change detection report:
+- Visual Diff Score: {visual_diff_score}% of pixels changed.
+- DOM text changes count: {text_summary.get('total_changes', 0)}
+- Sample additions: {text_summary.get('added_sample', [])}
+- Sample deletions: {text_summary.get('removed_sample', [])}
+
+Determine if this website has been defaced, compromised, or contains unauthorized structural modifications.
+Provide your evaluation in JSON format with exactly three fields:
+1. "severity": "low", "medium", or "high"
+2. "explanation": A concise explanation of the changes and why they are flagged.
+3. "recommended_action": Actionable remediation steps (e.g. "Rotate CMS admin credentials immediately and check recent login IPs").
+
+JSON output structure:
+{{
+  "severity": "high",
+  "explanation": "Brief description",
+  "recommended_action": "Remediation step"
+}}"""
+
+    # Fetch API Keys from Env
+    gemini_key = os.getenv("GEMINI_API_KEY") or api_key
+    groq_key = os.getenv("GROQ_API_KEY")
     
-    return ai_response
+    # Clean placeholders
+    if gemini_key and "your_gemini_api_key" in gemini_key:
+        gemini_key = None
+    if groq_key and "your_groq_api_key" in groq_key:
+        groq_key = None
+
+    if gemini_key:
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+            headers = {"Content-Type": "application/json"}
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"responseMimeType": "application/json"}
+            }
+            res = requests.post(url, json=payload, headers=headers, timeout=15)
+            if res.status_code == 200:
+                data = res.json()
+                text_out = data["candidates"][0]["content"]["parts"][0]["text"]
+                return json.loads(text_out)
+            else:
+                print(f"[!] Gemini API call failed with status {res.status_code}: {res.text}")
+        except Exception as e:
+            print(f"[!] Gemini API call exception: {e}")
+
+    if groq_key:
+        try:
+            url = "https://api.groq.com/openai/v1/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {groq_key}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "model": "llama-3.3-70b-versatile",
+                "messages": [{"role": "user", "content": prompt}],
+                "response_format": {"type": "json_object"}
+            }
+            res = requests.post(url, json=payload, headers=headers, timeout=15)
+            if res.status_code == 200:
+                data = res.json()
+                text_out = data["choices"][0]["message"]["content"]
+                return json.loads(text_out)
+            else:
+                print(f"[!] Groq API call failed with status {res.status_code}: {res.text}")
+        except Exception as e:
+            print(f"[!] Groq API call exception: {e}")
+
+    # Fallback to mock response
+    print("[!] No active AI keys or API calls failed. Using mock security analysis.")
+    
+    # Check for keywords in text diff for smarter mocking
+    all_additions = " ".join(text_summary.get('added_sample', [])).lower()
+    if "hacked" in all_additions or "anonymous" in all_additions or "deface" in all_additions:
+        return {
+            "severity": "high",
+            "explanation": "Critical security incident. Defacement keywords 'hacked' or 'anonymous' detected in text changes.",
+            "recommended_action": "Isolate the web server, check access logs, restore from clean backup, and rotate CMS keys."
+        }
+    
+    return {
+        "severity": "medium",
+        "explanation": "Significant visual and structural changes detected, but no obvious defacement signature found.",
+        "recommended_action": "Manually inspect the screenshot and DOM changes to verify legitimacy of update."
+    }
 
 # Simple local tester
 if __name__ == "__main__":
@@ -100,3 +184,4 @@ if __name__ == "__main__":
     print("[*] Testing AI Risk Evaluation")
     risk = evaluate_risk(10.5, res)
     print(risk)
+
